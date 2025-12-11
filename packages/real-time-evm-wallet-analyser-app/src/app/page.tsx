@@ -1,84 +1,173 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import WalletInput from '@/components/WalletInput';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { WalletAnalyzer } from '@/lib/analyzer';
+import { generateMarkdownReport } from '@/lib/markdown';
 
-const slogans = [
-  "Turn chats into apps",
-  "Prompt. Ship. Repeat.",
-  "Build anything from a chat",
-  "Ideas → Apps, instantly",
-  "From zero to MVP in minutes",
-  "Your cofounder in the command line",
-  "Draft, iterate, deploy",
-  "Ship faster than you can type",
-  "Design in text, deliver in code",
-  "Dream it. Prompt it. Run it.",
-  "Chat-native app building",
-  "From prompt to product",
-  "One prompt, infinite apps",
-  "Stop scaffolding. Start shipping.",
-  "Prototype at the speed of thought",
-  "Make conversations executable"
-];
+export default function Home() {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [report, setReport] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-export default function Landing() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
+  const handleAnalyze = async (address: string) => {
+    setIsAnalyzing(true);
+    setError(null);
+    setReport(null);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsVisible(false);
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % slogans.length);
-        setIsVisible(true);
-      }, 400);
-    }, 2800);
+    try {
+      const analyzer = new WalletAnalyzer(address);
+      const analysis = await analyzer.analyze();
+      const markdown = generateMarkdownReport(analysis);
+      setReport(markdown);
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      setError(err instanceof Error ? err.message : 'Failed to analyze wallet');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
-    return () => clearInterval(interval);
-  }, []);
+  const handleReset = () => {
+    setReport(null);
+    setError(null);
+  };
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-black text-white">
-      {/* Enhanced animated aurora background layers */}
-      <div className="absolute inset-0 bg-aurora-layer-1" />
-      <div className="absolute inset-0 bg-aurora-layer-2" />
-      <div className="absolute inset-0 bg-aurora-layer-3" />
-      
-      {/* Floating particles overlay */}
-      <div className="absolute inset-0 bg-particles" />
-      
-      {/* Main content - centered */}
-      <main className="relative z-10 h-full flex flex-col items-center justify-center px-6">
-        <h1 className="text-center text-[clamp(28px,6vw,64px)] font-medium tracking-tight mb-4">
-          Turn Chats into Apps
-        </h1>
-        
-        {/* Rotating slogans */}
-        <div className="mt-4 h-8 md:h-10 overflow-hidden flex items-center justify-center">
-          <span
-            className={`inline-block text-center text-[clamp(18px,3vw,32px)] font-light transition-all duration-[400ms] ease-in-out ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-            }`}
-          >
-            {slogans[currentIndex]}
-          </span>
-        </div>
-      </main>
-      
-      {/* Start Prompting arrow pointing left - bottom left */}
-      <div className="absolute left-6 md:left-8 bottom-[5%] z-20 flex items-center gap-3 arrow-point-left">
-        <div className="flex items-center gap-2 text-white/80 font-medium text-sm md:text-base">
-          <svg 
-            className="w-5 h-5 md:w-6 md:h-6 animate-bounce-horizontal" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span>Start prompting</span>
-        </div>
+    <div className="min-h-screen w-full bg-black text-white">
+      {/* Animated background */}
+      <div className="fixed inset-0 bg-aurora-layer-1" />
+      <div className="fixed inset-0 bg-aurora-layer-2" />
+      <div className="fixed inset-0 bg-aurora-layer-3" />
+      <div className="fixed inset-0 bg-particles" />
+
+      {/* Content */}
+      <div className="relative z-10 min-h-screen">
+        {/* Header */}
+        <header className="border-b border-white/10 bg-black/50 backdrop-blur-sm sticky top-0 z-20">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-3xl">🔍</div>
+              <div>
+                <h1 className="text-xl font-bold">EVM Wallet Analyzer</h1>
+                <p className="text-xs text-white/50">Real-time multi-chain analysis</p>
+              </div>
+            </div>
+            {report && (
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm transition-all"
+              >
+                ← New Analysis
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto px-6 py-12">
+          {!report && !error && (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+              <div className="text-center mb-12">
+                <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Analyze Any EVM Wallet
+                </h2>
+                <p className="text-xl text-white/60 max-w-2xl mx-auto">
+                  Get comprehensive insights across all major chains: portfolio value, DeFi positions, 
+                  security audit, PnL tracking, NFTs, and actionable recommendations
+                </p>
+              </div>
+
+              <WalletInput onAnalyze={handleAnalyze} isLoading={isAnalyzing} />
+
+              {/* Features */}
+              <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                  <div className="text-3xl mb-3">🌐</div>
+                  <h3 className="text-lg font-semibold mb-2">Multi-Chain</h3>
+                  <p className="text-sm text-white/60">
+                    Auto-detect and analyze across Ethereum, BSC, Polygon, Arbitrum, Optimism, Base, and more
+                  </p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                  <div className="text-3xl mb-3">🛡️</div>
+                  <h3 className="text-lg font-semibold mb-2">Security First</h3>
+                  <p className="text-sm text-white/60">
+                    Detect unlimited approvals, scam flags, and get risk scores with revoke links
+                  </p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                  <div className="text-3xl mb-3">📊</div>
+                  <h3 className="text-lg font-semibold mb-2">Complete Picture</h3>
+                  <p className="text-sm text-white/60">
+                    DeFi positions, PnL tracking, NFT portfolio, and personalized recommendations
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="max-w-3xl mx-auto">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 text-center">
+                <div className="text-4xl mb-3">⚠️</div>
+                <h3 className="text-xl font-semibold mb-2 text-red-400">Analysis Failed</h3>
+                <p className="text-white/70">{error}</p>
+                <button
+                  onClick={handleReset}
+                  className="mt-4 px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {report && (
+            <div className="max-w-5xl mx-auto">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm">
+                <MarkdownRenderer content={report} />
+              </div>
+
+              {/* Export Options */}
+              <div className="mt-6 flex gap-4 justify-center">
+                <button
+                  onClick={() => {
+                    const blob = new Blob([report], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `wallet-analysis-${Date.now()}.md`;
+                    a.click();
+                  }}
+                  className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg transition-all flex items-center gap-2"
+                >
+                  📥 Download Report
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(report);
+                    alert('Report copied to clipboard!');
+                  }}
+                  className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg transition-all flex items-center gap-2"
+                >
+                  📋 Copy to Clipboard
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer className="border-t border-white/10 bg-black/50 backdrop-blur-sm mt-20">
+          <div className="max-w-7xl mx-auto px-6 py-8 text-center text-white/40 text-sm">
+            <p>🔒 Privacy-first • No private keys required • Open source</p>
+            <p className="mt-2">Powered by Nullshot AI Agent Platform</p>
+          </div>
+        </footer>
       </div>
     </div>
   );
 }
+
